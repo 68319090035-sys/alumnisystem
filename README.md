@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alumni System - Hacker Edition</title>
+    <style>
+        /* CSS หลักสำหรับธีม Hacker */
+        body {
+            background-color: #050805;
+            color: #00ff41;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* Scanline Effect */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        /* ระบบสลับหน้าจอ (Views) */
+        .view { display: none; width: 100%; min-height: 100vh; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .view.active { display: flex; }
+
+        /* สไตล์ Container หน้าลงทะเบียน */
+        .container {
+            background: rgba(0, 20, 0, 0.9);
+            padding: 30px;
+            border: 2px solid #00ff41;
+            box-shadow: 0 0 20px #00ff41;
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            z-index: 10;
+        }
+
+        h2 { text-align: center; letter-spacing: 3px; text-shadow: 0 0 10px #00ff41; text-transform: uppercase; margin-top: 0; }
+        .input-group { margin-bottom: 12px; }
+        label { display: block; font-size: 12px; margin-bottom: 5px; opacity: 0.8; }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            background: #000;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            box-sizing: border-box;
+            outline: none;
+            font-family: 'Courier New', monospace;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #00ff41;
+            color: #000;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: 0.3s;
+            letter-spacing: 2px;
+            margin-top: 10px;
+        }
+
+        button:hover { background: #000; color: #00ff41; box-shadow: 0 0 15px #00ff41; border: 1px solid #00ff41; }
+
+        /* สไตล์หน้า Admin หลังบ้าน */
+        .admin-wrapper { width: 100%; max-width: 1000px; z-index: 10; padding-bottom: 80px; }
+        .table-responsive { overflow-x: auto; width: 100%; }
+        table { width: 100%; border-collapse: collapse; background: rgba(0,0,0,0.8); margin-top: 20px; }
+        th, td { border: 1px solid #00ff41; padding: 12px; text-align: left; font-size: 14px; }
+        th { background: rgba(0, 255, 65, 0.2); }
+
+        .edit-btn { background: transparent; color: #ffca28; border: 1px solid #ffca28; padding: 4px 8px; cursor: pointer; font-size: 10px; margin-right: 5px; width: auto; }
+        .delete-btn { background: transparent; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 4px 8px; cursor: pointer; font-size: 10px; width: auto; }
+        
+        /* ปุ่มเข้า Admin และ ปุ่มย้อนกลับ */
+        .admin-link { display: block; text-align: center; margin-top: 20px; color: #00ff41; text-decoration: none; font-size: 11px; opacity: 0.5; cursor: pointer; transition: 0.3s; }
+        .admin-link:hover { opacity: 1; color: #ff4d4d; text-shadow: 0 0 8px #00ff41; }
+
+        .back-btn { 
+            color: #ff4d4d; text-decoration: none; border: 1px solid #ff4d4d; padding: 10px 20px; 
+            position: fixed; bottom: 25px; right: 25px; 
+            text-transform: uppercase; font-size: 12px; font-weight: bold;
+            background: rgba(255, 77, 77, 0.05); transition: 0.3s; z-index: 1100; cursor: pointer;
+        }
+        .back-btn:hover { background: #ff4d4d; color: #000; box-shadow: 0 0 20px rgba(255, 77, 77, 0.6); }
+    </style>
+</head>
+<body>
+
+    <div id="registerView" class="view active">
+        <div class="container">
+            <h2>[ DATA_UPLOADER ]</h2>
+            <form id="registrationForm" onsubmit="saveData(event)">
+                <div class="input-group"><label>> NAME_LASTNAME</label><input type="text" id="name" placeholder="..." required></div>
+                <div class="input-group"><label>> UNIVERSITY</label><input type="text" id="school" placeholder="..." required></div>
+                <div class="input-group"><label>> BATCH_ID</label><input type="number" id="batch" placeholder="000" required></div>
+                <div class="input-group"><label>> EMAIL_ADDR</label><input type="email" id="email" placeholder="root@system" required></div>
+                <div class="input-group"><label>> PHONE_NO</label><input type="text" id="phone" placeholder="000-000-0000"></div>
+                <div class="input-group"><label>> OCCUPATION</label><input type="text" id="job" placeholder="Undefined"></div>
+                <button type="submit">_EXECUTE_SAVE_</button>
+            </form>
+            <div onclick="accessControl()" class="admin-link">>> bypass_admin_gate</div>
+        </div>
+    </div>
+
+    <div id="adminView" class="view">
+        <div class="admin-wrapper">
+            <h2>ALUMNI DATABASE SYSTEM</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>ชื่อ-นามสกุล</th>
+                            <th>สถาบัน</th>
+                            <th>รุ่น</th>
+                            <th>อีเมล</th>
+                            <th>เบอร์โทร</th>
+                            <th>อาชีพ</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="back-btn" onclick="switchView('registerView')">[ EXIT_TERMINAL ]</div>
+    </div>
+
+    <script>
+        // --- ส่วนควบคุมหน้าจอ (View Switching) ---
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            if(viewId === 'adminView') loadData(); // โหลดข้อมูลเมื่อเข้าหน้าแอดมิน
+        }
+
+        // --- ส่วนตรวจสอบสิทธิ์ (Auth) ---
+        function accessControl() {
+            const password = prompt("TERMINAL ACCESS - ENTER SECURITY_KEY:");
+            if (password === "pee777") {
+                alert("IDENTITY_VERIFIED.\nWELCOME, ADMIN.");
+                switchView('adminView');
+            } else if (password !== null) {
+                alert("WARNING: UNAUTHORIZED_ACCESS_DETECTED\nIP_LOGGED... SYSTEM_LOCKED");
+            }
+        }
+
+        // --- ส่วนบันทึกข้อมูล (Save) ---
+        function saveData(event) {
+            event.preventDefault();
+            const newData = {
+                id: Date.now(),
+                name: document.getElementById('name').value.trim(),
+                school: document.getElementById('school').value.trim(),
+                batch: document.getElementById('batch').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value || "-",
+                job: document.getElementById('job').value || "-"
+            };
+
+            try {
+                let alumniList = JSON.parse(localStorage.getItem('alumniData')) || [];
+                alumniList.push(newData);
+                localStorage.setItem('alumniData', JSON.stringify(alumniList));
+
+                alert('UPLOADING... [##########] 100%\nCOMPLETE: DATABASE_UPDATED');
+                document.getElementById('registrationForm').reset();
+            } catch (e) {
+                alert("SYSTEM_FAILURE: DATA_OVERFLOW");
+            }
+        }
+
+        // --- ส่วนจัดการตารางข้อมูล (Load/Edit/Delete) ---
+        function loadData() {
+            const tableBody = document.getElementById('tableBody');
+            const alumniList = JSON.parse(localStorage.getItem('alumniData')) || [];
+            tableBody.innerHTML = '';
+
+            alumniList.forEach((item, index) => {
+                const row = `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${item.name}</td>
+                        <td>${item.school}</td>
+                        <td>${item.batch}</td>
+                        <td>${item.email}</td>
+                        <td>${item.phone}</td>
+                        <td>${item.job}</td>
+                        <td>
+                            <button class="edit-btn" onclick="editData(${index})">EDIT</button>
+                            <button class="delete-btn" onclick="deleteData(${index})">DEL</button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        function editData(index) {
+            let alumniList = JSON.parse(localStorage.getItem('alumniData')) || [];
+            let item = alumniList[index];
+
+            const newName = prompt("แก้ไขชื่อ:", item.name);
+            const newSchool = prompt("แก้ไขสถาบัน:", item.school);
+            // ... (สามารถเพิ่ม Prompt อื่นๆ ได้ในลักษณะเดียวกัน)
+
+            if (newName && newSchool) {
+                alumniList[index].name = newName;
+                alumniList[index].school = newSchool;
+                localStorage.setItem('alumniData', JSON.stringify(alumniList));
+                loadData();
+                alert("DATABASE_UPDATED");
+            }
+        }
+
+        function deleteData(index) {
+            if (confirm("WARNING: Are you sure you want to delete this record?")) {
+                let alumniList = JSON.parse(localStorage.getItem('alumniData')) || [];
+                alumniList.splice(index, 1);
+                localStorage.setItem('alumniData', JSON.stringify(alumniList));
+                loadData();
+            }
+        }
+    </script>
+</body>
+</html>
